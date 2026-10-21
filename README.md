@@ -6,9 +6,11 @@ This is one of three repos:
 
 | Repo | What it is |
 | --- | --- |
-| **partners-app** (this one) | React Native (Expo) app for partners. Ships as an Android APK. |
-| partners-api | Node.js + Express + MongoDB API. Owns all data and rules. |
-| partners-dashboard | Web dashboard for the affiliate team (review and release commissions) and finance (payout runs). |
+| **coreasana-partners-app** (this one) | React Native (Expo) app for partners. Ships as an Android APK. |
+| [coreasana-partners-api](https://github.com/TarunVermaaa/coreasana-partners-api) | Node.js + Express + MongoDB API. Owns all data and rules. |
+| [coreasana-partners-dashboard](https://github.com/TarunVermaaa/coreasana-partners-dashboard) | Web dashboard for the affiliate team (review and release commissions) and finance (payout runs). |
+
+The five-minute happy path across the app and the dashboard: [docs/WALKTHROUGH.md](https://github.com/TarunVermaaa/coreasana-partners-api/blob/main/docs/WALKTHROUGH.md).
 
 ## What's in v1
 

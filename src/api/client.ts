@@ -91,7 +91,9 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
   if (!res.ok) {
     const err = json?.error;
     if (res.status === 401 && token) onUnauthorized?.();
-    throw new ApiError(res.status, err?.code ?? 'INTERNAL', err?.message ?? `Request failed (${res.status})`, err?.details ?? []);
+    // Server faults never surface raw internals to partners.
+    const message = res.status >= 500 ? 'The partner server ran into a problem. Please try again in a minute.' : (err?.message ?? `Request failed (${res.status})`);
+    throw new ApiError(res.status, err?.code ?? 'INTERNAL', message, err?.details ?? []);
   }
   return json as T;
 }

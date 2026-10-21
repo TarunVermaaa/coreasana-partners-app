@@ -83,7 +83,7 @@ EXPO_PUBLIC_API_URL=https://<deployed-api> npm run build:apk
 
 `scripts/build-apk.sh` runs `expo prebuild` (the `android/` folder is generated from `app.json` and not committed), then `./gradlew assembleRelease` for `arm64-v8a`. The release is signed with the React Native template's debug keystore. That's fine for sideloading a review build, but it needs a real upload key and an AAB before it goes to the Play Store.
 
-Cleartext HTTP is allowed (`expo-build-properties`) so that reviewers can point the APK at a laptop on the LAN. A production build should turn this off and use HTTPS only.
+Cleartext HTTP is allowed (`expo-build-properties`) so that reviewers can point the APK at a laptop on the LAN. A production build should turn this off and use HTTPS only. Permissions the app doesn't use (overlay, storage, biometrics) are blocked in `app.json`, which leaves only INTERNET and VIBRATE (for haptics).
 
 ## Design notes
 

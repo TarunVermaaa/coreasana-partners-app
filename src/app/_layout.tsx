@@ -1,12 +1,13 @@
 import { RedHatMono_400Regular, RedHatMono_500Medium } from '@expo-google-fonts/red-hat-mono';
 import { RedHatText_400Regular, RedHatText_500Medium, RedHatText_600SemiBold, RedHatText_700Bold } from '@expo-google-fonts/red-hat-text';
 import { YoungSerif_400Regular } from '@expo-google-fonts/young-serif';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
+import { AppState, Platform } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/client';
@@ -15,6 +16,12 @@ import { ToastProvider } from '@/components/Toast';
 import { colors } from '@/theme/tokens';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
+
+// React Query refetches stale data when the window regains focus. On a phone the equivalent is the
+// app coming back to the foreground; the browser preview already gets focus events.
+if (Platform.OS !== 'web') {
+  AppState.addEventListener('change', (status) => focusManager.setFocused(status === 'active'));
+}
 
 function Navigator() {
   const { state } = useAuth();

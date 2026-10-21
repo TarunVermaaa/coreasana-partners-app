@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useCommissions, useProgram } from '@/api/hooks';
+import { useRefreshOnFocus } from '@/api/useRefreshOnFocus';
 import type { Commission, CommissionStatus } from '@/api/types';
 import { Button } from '@/components/Button';
 import { Chips } from '@/components/Chips';
@@ -59,6 +60,7 @@ export default function Earnings() {
   const [filter, setFilter] = useState<Filter>('all');
   const program = useProgram().data ?? FALLBACK_PROGRAM;
   const query = useCommissions(filter === 'all' ? undefined : filter);
+  useRefreshOnFocus(query.refetch);
   const [refreshing, setRefreshing] = useState(false);
   const items = query.data?.pages.flatMap((p) => p.items) ?? [];
 

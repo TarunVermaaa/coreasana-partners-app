@@ -1,8 +1,9 @@
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useMe, usePayouts, useProgram, useSummary } from '@/api/hooks';
+import { useRefreshOnFocus } from '@/api/useRefreshOnFocus';
 import type { Affiliate, Payout } from '@/api/types';
 import { Button, PressableScale } from '@/components/Button';
 import { CountUpMoney, SplitDecimals } from '@/components/CountUp';
@@ -174,6 +175,8 @@ export default function Payouts() {
   const me = useMe();
   const summary = useSummary();
   const payouts = usePayouts();
+  const refreshAll = useCallback(() => Promise.all([summary.refetch(), payouts.refetch()]), [summary.refetch, payouts.refetch]);
+  useRefreshOnFocus(refreshAll);
   const program = useProgram().data ?? FALLBACK_PROGRAM;
   const [refreshing, setRefreshing] = useState(false);
   const [stampId, setStampId] = useState<string | null>(null);

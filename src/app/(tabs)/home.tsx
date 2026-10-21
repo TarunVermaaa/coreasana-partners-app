@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useMe, useProgram, useSummary } from '@/api/hooks';
+import { useRefreshOnFocus } from '@/api/useRefreshOnFocus';
 import type { Affiliate, Summary } from '@/api/types';
 import { Button, PressableScale } from '@/components/Button';
 import { CommissionLine } from '@/components/CommissionLine';
@@ -46,6 +47,7 @@ export default function Home() {
   const cardRef = useRef<PartnerCardHandle>(null);
   const me = useMe();
   const summary = useSummary();
+  useRefreshOnFocus(summary.refetch);
   const program = useProgram().data ?? FALLBACK_PROGRAM;
   const [refreshing, setRefreshing] = useState(false);
   const [animateIntro] = useState(() => !introPlayed);

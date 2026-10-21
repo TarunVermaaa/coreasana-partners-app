@@ -10,7 +10,7 @@ import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
 import { Skeleton } from '@/components/Skeleton';
 import { T } from '@/components/T';
-import { shortDate } from '@/lib/format';
+import { formatPhone, shortDate } from '@/lib/format';
 import { colors, fonts, radius } from '@/theme/tokens';
 
 const AUDIENCE: Record<Audience, string> = {
@@ -52,7 +52,7 @@ export default function Profile() {
           <View style={styles.panel}>
             <Row label="Partner code" value={me.code} />
             <Row label="Email" value={me.email} />
-            <Row label="Mobile" value={me.phone} />
+            <Row label="Mobile" value={formatPhone(me.phone)} />
             <Row label="Status" value={me.status === 'active' ? 'Active' : 'Paused by the partner team'} last={!me.instagram} />
             {me.instagram ? <Row label="Instagram" value={`@${me.instagram.replace(/^@/, '')}`} last /> : null}
           </View>

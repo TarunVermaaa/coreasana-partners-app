@@ -72,3 +72,10 @@ export function itemsLabel(items: { name: string; qty: number }[]): string {
   const firstLabel = first.qty > 1 ? `${first.name} ×${first.qty}` : first.name;
   return rest.length ? `${firstLabel} and ${rest.length} more` : firstLabel;
 }
+
+/** "+919810011201" or "9810011201" → "+91 98100 11201" */
+export function formatPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, '');
+  const local = digits.length === 12 && digits.startsWith('91') ? digits.slice(2) : digits;
+  return local.length === 10 ? `+91 ${local.slice(0, 5)} ${local.slice(5)}` : phone;
+}

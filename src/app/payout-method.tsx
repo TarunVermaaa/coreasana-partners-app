@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { ApiError } from '@/api/client';
@@ -37,6 +37,11 @@ export default function PayoutMethod() {
   const [ifsc, setIfsc] = useState(current?.type === 'bank' ? current.ifsc : '');
   const [pan, setPan] = useState('');
   const [errors, setErrors] = useState<Errors>({});
+
+  // The profile may arrive after this screen opens (deep link / refresh): prefill the holder name then.
+  useEffect(() => {
+    if (me && !accountName) setAccountName(current?.type === 'bank' ? current.accountName : me.name);
+  }, [me]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const validate = (): Errors => {
     const e: Errors = {};

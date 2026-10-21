@@ -1,5 +1,5 @@
 import { forwardRef, useState, type ComponentRef } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
+import { Platform, StyleSheet, TextInput, View, type TextInputProps } from 'react-native';
 import { colors, fonts, radius } from '@/theme/tokens';
 import { T } from './T';
 
@@ -56,6 +56,8 @@ const styles = StyleSheet.create({
     fontFamily: fonts.body,
     fontSize: 16,
     color: colors.midnight,
+    // The field draws its own focus border; drop the browser's default ring in the web preview.
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
   },
   focused: { borderColor: colors.lavenderDeep, borderWidth: 2, paddingHorizontal: 13 },
   invalid: { borderColor: colors.vermilion },

@@ -281,6 +281,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     letterSpacing: 1.5,
     ...figures.lining,
+    ...(Platform.OS === 'web' ? ({ outlineStyle: 'none' } as object) : null),
   },
   codeInputOk: { borderColor: colors.leaf },
   codeInputBad: { borderColor: colors.vermilion },

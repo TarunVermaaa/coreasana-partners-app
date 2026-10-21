@@ -133,6 +133,43 @@ function PayoutCard({ payout, stamp }: { payout: Payout; stamp: boolean }) {
   );
 }
 
+/** One line per older payout: date, net, and where it went; tap to copy its UTR. */
+function EarlierPayout({ payout, last }: { payout: Payout; last: boolean }) {
+  const toast = useToast();
+  const item = payout.items[0];
+  if (!item) return null;
+  const failed = item.status === 'failed';
+  return (
+    <Pressable
+      disabled={!item.utr}
+      onPress={async () => {
+        if (!item.utr) return;
+        await Clipboard.setStringAsync(item.utr);
+        haptic.success();
+        toast.show('UTR copied');
+      }}
+      accessibilityRole="button"
+      accessibilityLabel={`${dayDate(payout.scheduledFor)}, ${rupees(item.net)}${item.utr ? `, copy UTR ${item.utr}` : ''}`}
+      style={[styles.earlierRow, !last && styles.earlierDivider]}
+    >
+      <View style={{ flex: 1, gap: 2 }}>
+        <T v="smallStrong">{dayDate(payout.scheduledFor)}</T>
+        <T v="caption">
+          {failed ? (item.failureReason ?? "Didn't go through") : item.utr ? `UTR ${item.utr}` : payout.number}
+        </T>
+      </View>
+      <View style={{ alignItems: 'flex-end', gap: 2 }}>
+        <T v="number" style={failed && { color: colors.vermilion }}>
+          {rupees(item.net)}
+        </T>
+        <T v="caption" style={{ color: failed ? colors.vermilion : item.status === 'paid' ? colors.leaf : colors.slate, fontFamily: fonts.bodySemi }}>
+          {failed ? 'Returned to balance' : item.status === 'paid' ? 'Paid' : 'Processing'}
+        </T>
+      </View>
+    </Pressable>
+  );
+}
+
 export default function Payouts() {
   const me = useMe();
   const summary = useSummary();
@@ -189,7 +226,7 @@ export default function Payouts() {
       )}
 
       <T v="heading" style={styles.section}>
-        Paid so far
+        Payout history
       </T>
       {payouts.isPending ? (
         <Skeleton height={200} style={{ borderRadius: radius.panel }} />
@@ -207,7 +244,21 @@ export default function Payouts() {
           </T>
         </View>
       ) : (
-        payouts.data.items.map((p) => <PayoutCard key={p.id} payout={p} stamp={p.id === stampId} />)
+        <>
+          <PayoutCard payout={payouts.data.items[0]} stamp={payouts.data.items[0].id === stampId} />
+          {payouts.data.items.length > 1 && (
+            <>
+              <T v="smallStrong" style={styles.earlier}>
+                Earlier payouts
+              </T>
+              <View style={styles.ledger}>
+                {payouts.data.items.slice(1).map((p, i, arr) => (
+                  <EarlierPayout key={p.id} payout={p} last={i === arr.length - 1} />
+                ))}
+              </View>
+            </>
+          )}
+        </>
       )}
     </Screen>
   );
@@ -230,4 +281,8 @@ const styles = StyleSheet.create({
   bTotal: { paddingTop: 6, marginTop: 2, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line },
   utrRow: { marginTop: 12, paddingTop: 10, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.line, gap: 2 },
   utr: { color: colors.midnight },
+  earlier: { marginTop: 10, marginBottom: 8 },
+  ledger: { backgroundColor: colors.white, borderRadius: radius.panel, borderWidth: 1, borderColor: colors.line, paddingHorizontal: 16 },
+  earlierRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 13 },
+  earlierDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
 });

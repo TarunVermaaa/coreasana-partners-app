@@ -1,7 +1,8 @@
 import { Redirect, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { api } from '@/api/client';
 import { useProgram } from '@/api/hooks';
 import { useAuth } from '@/auth/AuthContext';
 import { Button } from '@/components/Button';
@@ -24,6 +25,9 @@ export default function Welcome() {
   const program = data ?? FALLBACK_PROGRAM;
   const [students, setStudents] = useState(8);
   const [serverOpen, setServerOpen] = useState(false);
+
+  // Most partners land here first: wake a sleeping server now so signup or login is quick later.
+  useEffect(() => api.wake(), []);
 
   if (state.status === 'signedIn') return <Redirect href="/home" />;
 

@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
-import { useRouter } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { Redirect, useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { api } from '@/api/client';
 import { useMe } from '@/api/hooks';
 import type { Audience } from '@/api/types';
@@ -8,6 +9,7 @@ import { useAuth } from '@/auth/AuthContext';
 import { BackBar } from '@/components/BackBar';
 import { Button } from '@/components/Button';
 import { Screen } from '@/components/Screen';
+import { ServerSheet } from '@/components/ServerSheet';
 import { Skeleton } from '@/components/Skeleton';
 import { T } from '@/components/T';
 import { formatPhone, shortDate } from '@/lib/format';
@@ -36,8 +38,16 @@ function Row({ label, value, mono, last }: { label: string; value: string; mono?
 
 export default function Profile() {
   const router = useRouter();
-  const { logout } = useAuth();
-  const { data: me } = useMe();
+  const { state, logout } = useAuth();
+  const { data: me, isError, error, refetch } = useMe();
+  const [serverOpen, setServerOpen] = useState(false);
+
+  if (state.status === 'signedOut') return <Redirect href="/welcome" />;
+
+  const signOut = async () => {
+    await logout();
+    router.replace('/welcome');
+  };
 
   return (
     <Screen>
@@ -62,16 +72,15 @@ export default function Profile() {
             </T>
           )}
           <Button label="Payout details" variant="secondary" onPress={() => router.push('/payout-method')} style={{ marginTop: 18 }} />
-          <Button
-            label="Log out"
-            variant="danger"
-            onPress={async () => {
-              await logout();
-              router.replace('/welcome');
-            }}
-            style={{ marginTop: 10 }}
-          />
         </>
+      ) : isError ? (
+        <View style={styles.errorBox}>
+          <T v="bodyStrong">Couldn't load your profile</T>
+          <T v="small" style={{ marginTop: 4, marginBottom: 14 }}>
+            {error?.message}
+          </T>
+          <Button label="Try again" variant="secondary" onPress={() => refetch()} />
+        </View>
       ) : (
         <View style={{ gap: 12 }}>
           <Skeleton height={30} width="60%" />
@@ -79,12 +88,18 @@ export default function Profile() {
         </View>
       )}
 
+      {/* Always available, even when the profile can't load, so the app can never trap a partner. */}
+      <Button label="Log out" variant="danger" onPress={signOut} style={{ marginTop: 10 }} />
+
       <View style={styles.meta}>
         <T v="caption">Core Asana Partners {Constants.expoConfig?.version ?? ''}</T>
-        <T v="caption" style={{ fontFamily: fonts.mono }}>
-          {api.usingFixtures ? 'Sample data mode' : api.baseUrl}
-        </T>
+        <Pressable onLongPress={() => setServerOpen(true)} delayLongPress={600} accessibilityHint="Long press to change the server address">
+          <T v="caption" style={{ fontFamily: fonts.mono }}>
+            {api.usingFixtures ? 'Sample data mode' : api.baseUrl}
+          </T>
+        </Pressable>
       </View>
+      <ServerSheet visible={serverOpen} onClose={() => setServerOpen(false)} />
     </Screen>
   );
 }
@@ -94,4 +109,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', paddingVertical: 13, gap: 8 },
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   meta: { marginTop: 36, alignItems: 'center', gap: 2 },
+  errorBox: { padding: 18, backgroundColor: colors.white, borderRadius: radius.panel, borderWidth: 1, borderColor: colors.line },
 });

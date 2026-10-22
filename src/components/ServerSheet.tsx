@@ -25,22 +25,18 @@ export function ServerSheet({ visible, onClose }: { visible: boolean; onClose: (
     }
   }, [visible]);
 
-  const test = async (candidate: string) => {
-    const res = await fetch(`${candidate.replace(/\/+$/, '')}/api/v1/health`).catch(() => null);
-    return !!res && res.ok;
-  };
-
   const save = async () => {
     const value = url.trim();
     if (!/^https?:\/\/.+/.test(value)) {
       setStatus({ tone: 'error', text: 'Enter a full address starting with http:// or https://' });
       return;
     }
+    setStatus(null);
     setBusy(true);
-    const ok = await test(value);
+    const ok = await api.isPartnerApi(value);
     setBusy(false);
     if (!ok) {
-      setStatus({ tone: 'error', text: `No response from ${value}/api/v1/health. Check the address and that the API is running.` });
+      setStatus({ tone: 'error', text: `${value} didn't answer like the partner API within 8 seconds. Check the address and that the API is running.` });
       return;
     }
     await api.setBaseUrl(value);

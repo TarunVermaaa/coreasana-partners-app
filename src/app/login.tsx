@@ -1,7 +1,7 @@
 import { Redirect, useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
-import { ApiError } from '@/api/client';
+import { ApiError, api } from '@/api/client';
 import { useAuth } from '@/auth/AuthContext';
 import { BackBar } from '@/components/BackBar';
 import { Button } from '@/components/Button';
@@ -9,6 +9,7 @@ import { Field, type FieldRef } from '@/components/Field';
 import { Screen } from '@/components/Screen';
 import { T } from '@/components/T';
 import { haptic } from '@/lib/haptics';
+import { useSlowHint, WAKING_COPY } from '@/lib/useSlowHint';
 import { colors } from '@/theme/tokens';
 
 export default function Login() {
@@ -19,6 +20,10 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const passwordRef = useRef<FieldRef>(null);
+  const slow = useSlowHint(busy);
+
+  // Start a sleeping server while the partner types their password.
+  useEffect(() => api.wake(), []);
 
   if (state.status === 'signedIn') return <Redirect href="/home" />;
 
@@ -81,6 +86,11 @@ export default function Login() {
           </View>
         )}
         <Button label="Log in" onPress={submit} loading={busy} style={{ marginTop: 8 }} />
+        {slow && (
+          <T v="caption" style={styles.slow} accessibilityLiveRegion="polite">
+            {WAKING_COPY}
+          </T>
+        )}
         <Button label="New here? Create a partner account" variant="quiet" onPress={() => router.replace('/signup')} />
       </Screen>
     </KeyboardAvoidingView>
@@ -91,4 +101,5 @@ const styles = StyleSheet.create({
   title: { marginTop: 8 },
   sub: { marginTop: 6, marginBottom: 24 },
   error: { marginBottom: 8 },
+  slow: { textAlign: 'center', marginTop: 10 },
 });

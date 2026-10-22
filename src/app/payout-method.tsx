@@ -1,9 +1,10 @@
-import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { Redirect, useRouter } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { ApiError } from '@/api/client';
 import { useMe, useProgram, useSavePayoutMethod } from '@/api/hooks';
+import { useAuth } from '@/auth/AuthContext';
 import { BackBar } from '@/components/BackBar';
 import { Button } from '@/components/Button';
 import { Chips } from '@/components/Chips';
@@ -13,17 +14,16 @@ import { T } from '@/components/T';
 import { useToast } from '@/components/Toast';
 import { haptic } from '@/lib/haptics';
 import { FALLBACK_PROGRAM } from '@/lib/program';
+import { IFSC, PAN, UPI_ID } from '@/lib/validation';
 import { colors, radius } from '@/theme/tokens';
 
-const UPI = /^[a-zA-Z0-9._-]{2,256}@[a-zA-Z][a-zA-Z0-9.-]{1,64}$/;
-const IFSC = /^[A-Z]{4}0[A-Z0-9]{6}$/;
-const PAN = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
 
 type Errors = Partial<Record<'upiId' | 'accountName' | 'accountNumber' | 'confirm' | 'ifsc' | 'pan' | 'form', string>>;
 
 export default function PayoutMethod() {
   const router = useRouter();
   const toast = useToast();
+  const { state } = useAuth();
   const me = useMe().data;
   const program = useProgram().data ?? FALLBACK_PROGRAM;
   const save = useSavePayoutMethod();
@@ -38,15 +38,33 @@ export default function PayoutMethod() {
   const [pan, setPan] = useState('');
   const [errors, setErrors] = useState<Errors>({});
 
-  // The profile may arrive after this screen opens (deep link / refresh): prefill the holder name then.
+  // The profile may arrive after this screen opens (deep link or refresh). Prefill from it once,
+  // unless the partner has already started typing.
+  const prefilled = useRef(Boolean(me));
+  const edited = useRef(false);
   useEffect(() => {
-    if (me && !accountName) setAccountName(current?.type === 'bank' ? current.accountName : me.name);
-  }, [me]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!me || prefilled.current) return;
+    prefilled.current = true;
+    if (edited.current) return;
+    const m = me.payoutMethod;
+    setType(m?.type ?? 'upi');
+    if (m?.type === 'upi') setUpiId(m.upiId);
+    if (m?.type === 'bank') setIfsc(m.ifsc);
+    setAccountName(m?.type === 'bank' ? m.accountName : me.name);
+  }, [me]);
+  const edit =
+    <V,>(setter: (v: V) => void) =>
+    (v: V) => {
+      edited.current = true;
+      setter(v);
+    };
+
+  if (state.status === 'signedOut') return <Redirect href="/welcome" />;
 
   const validate = (): Errors => {
     const e: Errors = {};
     if (type === 'upi') {
-      if (!UPI.test(upiId.trim())) e.upiId = 'Enter a UPI ID like name@okicici.';
+      if (!UPI_ID.test(upiId.trim())) e.upiId = 'Enter a UPI ID like name@okicici.';
     } else {
       if (accountName.trim().length < 2) e.accountName = 'Enter the name exactly as it appears on the account.';
       if (!/^\d{9,18}$/.test(accountNumber)) e.accountNumber = 'Account numbers are 9 to 18 digits.';
@@ -101,7 +119,7 @@ export default function PayoutMethod() {
           ]}
           value={type}
           onChange={(v) => {
-            setType(v);
+            edit(setType)(v);
             setErrors({});
           }}
           accessibilityLabel="Payout method"
@@ -109,24 +127,24 @@ export default function PayoutMethod() {
 
         <Animated.View key={type} entering={FadeIn.duration(200)} style={{ marginTop: 20 }}>
           {type === 'upi' ? (
-            <Field label="UPI ID" value={upiId} onChangeText={setUpiId} autoCapitalize="none" autoCorrect={false} placeholder="name@okicici" error={errors.upiId} />
+            <Field label="UPI ID" value={upiId} onChangeText={edit(setUpiId)} autoCapitalize="none" autoCorrect={false} placeholder="name@okicici" error={errors.upiId} />
           ) : (
             <>
-              <Field label="Account holder name" value={accountName} onChangeText={setAccountName} autoCapitalize="words" error={errors.accountName} />
+              <Field label="Account holder name" value={accountName} onChangeText={edit(setAccountName)} autoCapitalize="words" error={errors.accountName} />
               <Field
                 label="Account number"
                 value={accountNumber}
-                onChangeText={(t) => setAccountNumber(t.replace(/\D/g, ''))}
+                onChangeText={(t) => edit(setAccountNumber)(t.replace(/\D/g, ''))}
                 keyboardType="number-pad"
                 secureTextEntry={Platform.OS !== 'web'}
                 error={errors.accountNumber}
                 hint={current?.type === 'bank' ? `Currently ending ${current.accountNumberLast4}. Enter it again to change any bank detail.` : undefined}
               />
-              <Field label="Account number again" value={confirm} onChangeText={(t) => setConfirm(t.replace(/\D/g, ''))} keyboardType="number-pad" error={errors.confirm} />
+              <Field label="Account number again" value={confirm} onChangeText={(t) => edit(setConfirm)(t.replace(/\D/g, ''))} keyboardType="number-pad" error={errors.confirm} />
               <Field
                 label="IFSC"
                 value={ifsc}
-                onChangeText={(t) => setIfsc(t.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11))}
+                onChangeText={(t) => edit(setIfsc)(t.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11))}
                 autoCapitalize="characters"
                 autoCorrect={false}
                 placeholder="HDFC0001234"
@@ -140,7 +158,7 @@ export default function PayoutMethod() {
           <Field
             label="PAN (optional)"
             value={pan}
-            onChangeText={(t) => setPan(t.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))}
+            onChangeText={(t) => edit(setPan)(t.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10))}
             autoCapitalize="characters"
             autoCorrect={false}
             placeholder={me?.panLast4 ? `On file, ending ${me.panLast4}` : 'ABCDE1234F'}

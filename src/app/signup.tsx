@@ -1,8 +1,8 @@
 import { Redirect, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Share, StyleSheet, TextInput, View } from 'react-native';
+import { BackHandler, KeyboardAvoidingView, Platform, StyleSheet, TextInput, View } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
-import { ApiError } from '@/api/client';
+import { ApiError, api } from '@/api/client';
 import { useCodeAvailability, useProgram } from '@/api/hooks';
 import type { Audience } from '@/api/types';
 import { useAuth } from '@/auth/AuthContext';
@@ -13,8 +13,11 @@ import { Field, type FieldRef } from '@/components/Field';
 import { PartnerCard } from '@/components/PartnerCard';
 import { Screen } from '@/components/Screen';
 import { T } from '@/components/T';
+import { useToast } from '@/components/Toast';
 import { haptic } from '@/lib/haptics';
+import { useSlowHint, WAKING_COPY } from '@/lib/useSlowHint';
 import { FALLBACK_PROGRAM, suggestCode } from '@/lib/program';
+import { COPIED_INSTEAD, shareOrCopy } from '@/lib/share';
 import { colors, figures, fonts, radius } from '@/theme/tokens';
 
 const AUDIENCES: { value: Audience; label: string }[] = [
@@ -49,6 +52,7 @@ function useDebounced<T>(value: T, ms: number) {
 
 export default function Signup() {
   const router = useRouter();
+  const toast = useToast();
   const { state, signup } = useAuth();
   const program = useProgram().data ?? FALLBACK_PROGRAM;
   const signedInAtMount = useRef(state.status === 'signedIn');
@@ -66,6 +70,19 @@ export default function Signup() {
   const emailRef = useRef<FieldRef>(null);
   const phoneRef = useRef<FieldRef>(null);
   const passwordRef = useRef<FieldRef>(null);
+
+  const slow = useSlowHint(busy);
+  useEffect(() => api.wake(), []);
+
+  // Android back button on step 2 goes back to step 1 (keeping what was typed), not out of signup.
+  useEffect(() => {
+    if (step !== 'code') return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      setStep('about');
+      return true;
+    });
+    return () => sub.remove();
+  }, [step]);
 
   const debouncedCode = useDebounced(code, 350);
   const availability = useCodeAvailability(debouncedCode, step === 'code');
@@ -129,7 +146,12 @@ export default function Signup() {
         </Animated.View>
         <PartnerCard code={code} discountPct={program.customerDiscountPct} ratePct={program.commissionRatePct} />
         <View style={{ gap: 6, marginTop: 24 }}>
-          <Button label="Share your code" onPress={() => Share.share({ message }).catch(() => {})} />
+          <Button
+            label="Share your code"
+            onPress={async () => {
+              if ((await shareOrCopy(message)) === 'copied') toast.show(COPIED_INSTEAD);
+            }}
+          />
           <Button label="Go to my earnings" variant="quiet" onPress={() => router.replace('/home')} />
         </View>
       </Screen>
@@ -259,6 +281,11 @@ export default function Signup() {
             </View>
 
             <Button label="Create partner account" onPress={submit} loading={busy} disabled={!codeOk} style={{ marginTop: 24 }} />
+            {slow && (
+              <T v="caption" style={{ marginTop: 10, textAlign: 'center' }} accessibilityLiveRegion="polite">
+                {WAKING_COPY}
+              </T>
+            )}
             <T v="caption" style={{ marginTop: 10, textAlign: 'center' }}>
               By creating an account you agree to the partner terms.
             </T>

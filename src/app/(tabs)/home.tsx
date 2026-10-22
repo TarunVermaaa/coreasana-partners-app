@@ -1,7 +1,7 @@
 import * as Clipboard from 'expo-clipboard';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
-import { Share, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { useMe, useProgram, useSummary } from '@/api/hooks';
 import { useRefreshOnFocus } from '@/api/useRefreshOnFocus';
@@ -18,6 +18,7 @@ import { useToast } from '@/components/Toast';
 import { dayDate, firstName, greeting, rupees, rupeesRounded, toDate, weekdayName } from '@/lib/format';
 import { haptic } from '@/lib/haptics';
 import { FALLBACK_PROGRAM } from '@/lib/program';
+import { COPIED_INSTEAD, shareOrCopy } from '@/lib/share';
 import { colors, radius } from '@/theme/tokens';
 
 // The card's rise-and-ripple is a once-per-session moment, not something to replay on every refresh.
@@ -70,11 +71,12 @@ export default function Home() {
     toast.show('Code copied');
   };
 
-  const share = () => {
+  const share = async () => {
     if (!affiliate || !data) return;
-    Share.share({
-      message: `I use Core Asana in my practice and recommend it to my students. Use my code ${affiliate.code} for ${program.customerDiscountPct}% off: ${data.shareUrl}`,
-    }).catch(() => {});
+    const result = await shareOrCopy(
+      `I use Core Asana in my practice and recommend it to my students. Use my code ${affiliate.code} for ${program.customerDiscountPct}% off: ${data.shareUrl}`,
+    );
+    if (result === 'copied') toast.show(COPIED_INSTEAD);
   };
 
   const countDelay = animateIntro ? 650 : 0;

@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import type { Commission } from '@/api/types';
-import { itemsLabel, rupees, shortDate } from '@/lib/format';
+import { commissionCaption, commissionTitle } from '@/lib/commission';
+import { rupees } from '@/lib/format';
 import { colors } from '@/theme/tokens';
 import { StatusPill } from './StatusPill';
 import { T } from './T';
@@ -12,11 +13,9 @@ export function CommissionLine({ c, last }: { c: Commission; last?: boolean }) {
     <View style={[styles.row, !last && styles.divider]}>
       <View style={{ flex: 1, gap: 4 }}>
         <T v="bodyStrong" numberOfLines={1}>
-          {c.kind === 'clawback' ? 'Refund after payout' : itemsLabel(c.order.items)}
+          {commissionTitle(c)}
         </T>
-        <T v="caption">
-          {shortDate(c.order.placedAt)}, order {rupees(c.order.total)}
-        </T>
+        <T v="caption">{commissionCaption(c)}</T>
       </View>
       <View style={{ alignItems: 'flex-end', gap: 5 }}>
         <T v="number" style={[negative && { color: colors.vermilion }, c.status === 'reversed' && styles.struck]}>

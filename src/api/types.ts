@@ -48,6 +48,7 @@ export type Affiliate = {
 export type Commission = {
   id: string;
   kind: 'sale' | 'clawback';
+  /** Null if the order record is missing on the server; screens fall back to the commission's own dates. */
   order: {
     id: string;
     externalId: string;
@@ -55,7 +56,7 @@ export type Commission = {
     items: { name: string; qty: number }[];
     total: Money;
     status: 'placed' | 'refunded' | 'partially_refunded';
-  };
+  } | null;
   base: Money;
   ratePct: number;
   amount: Money;

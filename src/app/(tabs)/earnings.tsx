@@ -11,6 +11,7 @@ import { Screen } from '@/components/Screen';
 import { Skeleton } from '@/components/Skeleton';
 import { T } from '@/components/T';
 import { TabHeader } from '@/components/TabHeader';
+import { ledgerDate } from '@/lib/commission';
 import { rupeesRounded, toDate } from '@/lib/format';
 import { FALLBACK_PROGRAM } from '@/lib/program';
 import { colors, figures, radius } from '@/theme/tokens';
@@ -37,23 +38,35 @@ const EMPTY: Record<Filter, string> = {
 
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
-/** Passbook-style grouping: one panel per month, newest first, with what that month earned. */
+/**
+ * Passbook-style grouping: one panel per month, with what that month earned. The API pages by
+ * creation order, which isn't always date order (a clawback is created long after its order), so
+ * months and the rows inside them are sorted here, newest first.
+ */
 function groupByMonth(items: Commission[]) {
-  const groups: { key: string; label: string; items: Commission[]; earned: number; count: number }[] = [];
+  const groups: { key: string; sortKey: number; label: string; items: Commission[]; earned: number; count: number }[] = [];
   const thisYear = new Date().getFullYear();
-  for (const c of items) {
-    const d = toDate(c.order.placedAt);
+  const sorted = [...items].sort((a, b) => toDate(ledgerDate(b)).getTime() - toDate(ledgerDate(a)).getTime());
+  for (const c of sorted) {
+    const d = toDate(ledgerDate(c));
     const key = `${d.getFullYear()}-${d.getMonth()}`;
     let g = groups.find((x) => x.key === key);
     if (!g) {
-      g = { key, label: d.getFullYear() === thisYear ? MONTH_NAMES[d.getMonth()] : `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`, items: [], earned: 0, count: 0 };
+      g = {
+        key,
+        sortKey: d.getFullYear() * 12 + d.getMonth(),
+        label: d.getFullYear() === thisYear ? MONTH_NAMES[d.getMonth()] : `${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`,
+        items: [],
+        earned: 0,
+        count: 0,
+      };
       groups.push(g);
     }
     g.items.push(c);
     if (c.status !== 'reversed' && c.status !== 'rejected') g.earned += c.amount;
     if (c.kind === 'sale') g.count += 1;
   }
-  return groups;
+  return groups.sort((a, b) => b.sortKey - a.sortKey);
 }
 
 export default function Earnings() {

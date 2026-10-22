@@ -4,7 +4,8 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn, LinearTransition } from 'react-native-reanimated';
 import type { Commission } from '@/api/types';
 import { haptic } from '@/lib/haptics';
-import { isPast, itemsLabel, rupees, shortDate } from '@/lib/format';
+import { commissionCaption, commissionDate, commissionTitle } from '@/lib/commission';
+import { isPast, rupees, shortDate } from '@/lib/format';
 import { colors, fonts } from '@/theme/tokens';
 import { StatusPill } from './StatusPill';
 import { T } from './T';
@@ -19,14 +20,16 @@ export function timeline(c: Commission, holdDays = 15): Step[] {
   if (c.kind === 'clawback') {
     const created = c.history[0];
     return [
-      { title: 'Order refunded after it was paid', detail: created?.note ?? `Order ${c.order.externalId}`, date: created?.at ?? c.createdAt, state: 'done' },
+      { title: 'Order refunded after it was paid', detail: created?.note ?? (c.order ? `Order ${c.order.externalId}` : undefined), date: created?.at ?? c.createdAt, state: 'done' },
       c.status === 'paid'
         ? { title: 'Deducted from a payout', detail: c.payout?.number, date: c.payout?.paidAt ?? undefined, state: 'done' }
         : { title: 'Deducted from your next payout', detail: 'Nothing for you to do.', state: 'current' },
     ];
   }
 
-  const steps: Step[] = [{ title: 'Order placed', detail: `Order ${c.order.externalId}, ${rupees(c.order.total)}`, date: c.order.placedAt, state: 'done' }];
+  const steps: Step[] = [
+    { title: 'Order placed', detail: c.order ? `Order ${c.order.externalId}, ${rupees(c.order.total)}` : undefined, date: commissionDate(c), state: 'done' },
+  ];
 
   if (c.status === 'reversed') {
     const h = at(c, 'reversed');
@@ -87,17 +90,15 @@ export function CommissionRow({ c, holdDays, last }: { c: Commission; holdDays: 
         }}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
-        accessibilityLabel={`${c.kind === 'clawback' ? 'Refund after payout' : itemsLabel(c.order.items)}, ${rupees(c.amount)}`}
+        accessibilityLabel={`${commissionTitle(c)}, ${rupees(c.amount)}`}
         accessibilityHint="Shows where this commission is"
         style={styles.head}
       >
         <View style={{ flex: 1, gap: 4 }}>
           <T v="bodyStrong" numberOfLines={open ? undefined : 2}>
-            {c.kind === 'clawback' ? 'Refund after payout' : itemsLabel(c.order.items)}
+            {commissionTitle(c)}
           </T>
-          <T v="caption">
-            {shortDate(c.order.placedAt)}, order {rupees(c.order.total)}
-          </T>
+          <T v="caption">{commissionCaption(c)}</T>
         </View>
         <View style={{ alignItems: 'flex-end', gap: 5 }}>
           <T v="number" style={[negative && { color: colors.vermilion }, c.status === 'reversed' && styles.struck]}>

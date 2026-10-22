@@ -3,11 +3,11 @@ import { RedHatText_400Regular, RedHatText_500Medium, RedHatText_600SemiBold, Re
 import { YoungSerif_400Regular } from '@expo-google-fonts/young-serif';
 import { QueryClient, QueryClientProvider, focusManager } from '@tanstack/react-query';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, type ErrorBoundaryProps } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
-import { AppState, Platform } from 'react-native';
+import { AppState, Platform, Pressable, Text, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ApiError } from '@/api/client';
@@ -21,6 +21,31 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 // app coming back to the foreground; the browser preview already gets focus events.
 if (Platform.OS !== 'web') {
   AppState.addEventListener('change', (status) => focusManager.setFocused(status === 'active'));
+}
+
+/**
+ * Last line of defence: if a screen throws (unexpected data from the server, a bug), show a way out
+ * instead of a blank app. Rendered outside the providers, so it uses plain system text.
+ */
+export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+  return (
+    <View style={{ flex: 1, backgroundColor: colors.mist, padding: 28, justifyContent: 'center' }}>
+      <Text style={{ fontSize: 24, fontWeight: '700', color: colors.midnight }}>Something went wrong on this screen</Text>
+      <Text style={{ fontSize: 16, lineHeight: 23, color: colors.slate, marginTop: 10 }}>
+        Your earnings and payouts are safe. Try again; if it keeps happening, close and reopen the app.
+      </Text>
+      <Pressable
+        onPress={retry}
+        accessibilityRole="button"
+        style={{ marginTop: 24, alignSelf: 'flex-start', backgroundColor: colors.midnight, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 22 }}
+      >
+        <Text style={{ color: colors.white, fontSize: 16, fontWeight: '600' }}>Try again</Text>
+      </Pressable>
+    </View>
+  );
 }
 
 function Navigator() {

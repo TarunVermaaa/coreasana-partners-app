@@ -2,6 +2,8 @@
 
 The partner-facing app of the Core Asana affiliate program. Yoga teachers, physiotherapists, studios and wellness creators sign up, pick a code their students can remember, share it, and follow every order from *on hold* to *paid* in their UPI or bank account.
 
+**Download the APK:** [latest release](https://github.com/TarunVermaaa/coreasana-partners-app/releases/latest). It talks to the live API at https://coreasana-partners-api.onrender.com.
+
 This is one of three repos:
 
 | Repo | What it is |
